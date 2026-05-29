@@ -1,20 +1,33 @@
 const pool = require('../config/db');
 
-// Get all events
+// Get all events with attendee count
 const getAllEvents = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM events ORDER BY date DESC');
+    const result = await pool.query(
+      `SELECT e.*, COUNT(r.id) as attendees 
+       FROM events e 
+       LEFT JOIN registrations r ON e.id = r.event_id 
+       GROUP BY e.id 
+       ORDER BY e.date DESC`
+    );
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// Get single event by ID
+// Get single event by ID with attendee count
 const getEventById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query('SELECT * FROM events WHERE id = $1', [id]);
+    const result = await pool.query(
+      `SELECT e.*, COUNT(r.id) as attendees 
+       FROM events e 
+       LEFT JOIN registrations r ON e.id = r.event_id 
+       WHERE e.id = $1 
+       GROUP BY e.id`,
+      [id]
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
